@@ -89,48 +89,41 @@ Los servos se conectan a los canales del PCA9685 según la pata que controlan.
 #include <Adafruit_PWMServoDriver.h>  // Librería para controlar el PCA9685
 #include <SoftwareSerial.h>           // Librería para comunicación serial con Bluetooth
 
-// -------------------- Clase que controla los servos --------------------
+//  Clase que controla los servos 
 class ServoController {
   Adafruit_PWMServoDriver pwm;  // Objeto para manejar el PCA9685
   int SERVOMIN, SERVOMAX;       // Límites de pulso para los servos
 
 public:
-  // Constructor: recibe dirección I2C y valores de pulso mínimo y máximo
   ServoController(int address, int minPulse, int maxPulse)
     : pwm(address), SERVOMIN(minPulse), SERVOMAX(maxPulse) {}
 
-  // Inicializa el PCA9685
   void iniciar() {
     pwm.begin();          // Inicia comunicación I2C
     pwm.setPWMFreq(60);   // Frecuencia típica para servos (60 Hz)
   }
 
-  // Función para mover un servo a cierto ángulo
   void mover(int canal, int angulo) {
     int pulso = map(angulo, 0, 180, SERVOMIN, SERVOMAX); // Convierte ángulo a pulso
     pwm.setPWM(canal, 0, pulso);                         // Envía señal al servo
   }
 };
 
-// -------------------- Clase para cada pata --------------------
+// Clase para cada pata 
 class Pata {
   int servoHorizontal;        // Servo que mueve la pata hacia adelante/atrás
   int servoVertical;          // Servo que levanta o baja la pata
   ServoController* servoCtrl; // Controlador que maneja los servos
 
 public:
-  // Constructor: recibe los canales de los servos y el controlador
   Pata(int h, int v, ServoController* sc)
     : servoHorizontal(h), servoVertical(v), servoCtrl(sc) {}
 
-  // Levanta o baja la pata
   void levantar(int angulo) { servoCtrl->mover(servoVertical, angulo); }
-
-  // Mueve la pata hacia adelante o atrás
   void moverHorizontal(int angulo) { servoCtrl->mover(servoHorizontal, angulo); }
 };
 
-// -------------------- Clase del robot hexápodo --------------------
+//  Clase del robot hexápodo 
 class Hexapodo {
   Pata* patas[6];             // Arreglo con las 6 patas
   ServoController* servoCtrl; // Controlador de servos
@@ -138,10 +131,8 @@ class Hexapodo {
 public:
   Hexapodo(ServoController* sc) : servoCtrl(sc) {}
 
-  // Asigna una pata al robot
   void asignarPata(int index, Pata* pata) { patas[index] = pata; }
 
-  // Coloca al robot en posición de reposo
   void pararse() {
     patas[0]->levantar(145); patas[0]->moverHorizontal(110);
     patas[1]->levantar(145); patas[1]->moverHorizontal(100);
@@ -149,10 +140,9 @@ public:
     patas[3]->levantar(145); patas[3]->moverHorizontal(75);
     patas[4]->levantar(145); patas[4]->moverHorizontal(100);
     patas[5]->levantar(145); patas[5]->moverHorizontal(75);
-    delay(500); // Pausa para que los servos lleguen a la posición
+    delay(500);
   }
 
-  // Movimiento del grupo A de patas
   void moverA() {
     patas[0]->levantar(145); patas[0]->moverHorizontal(80);
     patas[1]->levantar(165); patas[1]->moverHorizontal(150);
@@ -160,7 +150,6 @@ public:
     delay(500);
   }
 
-  // Movimiento del grupo B de patas
   void moverB() {
     patas[3]->levantar(175); patas[3]->moverHorizontal(105);
     patas[4]->levantar(135); patas[4]->moverHorizontal(50);
@@ -169,15 +158,13 @@ public:
   }
 };
 
-// -------------------- Configuración de Bluetooth --------------------
+//  Bluetooth 
 SoftwareSerial bluetooth(11, 10); // RX=10, TX=11
 int cicloActivo = 0;              // Variable para saber si el robot está caminando
 
-// -------------------- Objetos principales --------------------
 ServoController servoCtrl(0x40, 125, 625); // Dirección I2C del PCA9685 y pulsos
 Hexapodo robot(&servoCtrl);                // Robot hexápodo
 
-// -------------------- Setup --------------------
 void setup() {
   servoCtrl.iniciar();     // Inicializa el controlador PCA9685
   bluetooth.begin(9600);   // Inicializa comunicación Bluetooth
@@ -193,11 +180,9 @@ void setup() {
   robot.pararse(); // El robot inicia en posición estable
 }
 
-// -------------------- Loop principal --------------------
 void loop() {
-  // Revisa si hay datos recibidos por Bluetooth
   if (bluetooth.available() > 0) {
-    char comando = bluetooth.read(); // Lee el comando
+    char comando = bluetooth.read();
     if (comando == 'W' || comando == 'w') {
       cicloActivo = 1; // Activa caminata
     } else if (comando == 'S' || comando == 's') {
@@ -206,7 +191,6 @@ void loop() {
     }
   }
 
-  // Si el ciclo está activo, alterna movimientos de patas
   if (cicloActivo == 1) {
     robot.moverA();
     delay(300);
